@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">OfferApp</string>
     <string name="no_offers">No offers founded</string>
+    <string name="default_link">https://www.google.com</string>
 </resources>

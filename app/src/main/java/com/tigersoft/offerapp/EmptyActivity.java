@@ -1,6 +1,5 @@
 package com.tigersoft.offerapp;
 
-import android.app.PendingIntent;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -9,7 +8,6 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import static com.tigersoft.offerapp.MainActivity.PARAM_PINTENT;
 import static com.tigersoft.offerapp.MainActivity.PARAM_RESULT;
 import static com.tigersoft.offerapp.MainActivity.STATUS_FINISH;
 import static com.tigersoft.offerapp.MainActivity.STATUS_START;
@@ -23,13 +21,11 @@ public class EmptyActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.activity_empty);
 
-        PendingIntent pi;
         Intent getIntent;
 
-        pi = createPendingResult(3, new Intent(), 0);
-
-        getIntent = new Intent(this, GpsJsonService.class).putExtra(PARAM_PINTENT, pi);
+        getIntent = new Intent(this, GpsJsonService.class);
         startService(getIntent);
+        finish();
     }
 
     @Override

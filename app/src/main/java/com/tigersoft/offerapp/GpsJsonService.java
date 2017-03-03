@@ -1,11 +1,16 @@
 package com.tigersoft.offerapp;
 
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -18,6 +23,8 @@ import retrofit2.Retrofit;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
+
+import static com.tigersoft.offerapp.R.mipmap.ic_launcher;
 
 public class GpsJsonService extends Service {
 
@@ -36,9 +43,7 @@ public class GpsJsonService extends Service {
     public int onStartCommand(Intent intent, int flags, int taskId) {
         Log.d(LOG_TAG, "EvjYahooService onStartCommand");
 
-        PendingIntent pi = intent.getParcelableExtra(MainActivity.PARAM_PINTENT);
-
-        Exchange exc = new Exchange(pi);
+        Exchange exc = new Exchange();
         es.execute(exc);
 
         return super.onStartCommand(intent, flags, taskId);
@@ -57,39 +62,30 @@ public class GpsJsonService extends Service {
         private final String BB_JSON="https://bitbucket.org/!api/2.0/snippets/Tigrend/GezGr/f16808e9d6e75b453e961736497f148f01ea3c00/files/";
 
         Retrofit retrofit;
-        PendingIntent pi;
         Intent intent;
 
-        public Exchange(PendingIntent pi) {
-            this.pi = pi;
+        public Exchange() {
             Log.d(LOG_TAG, "Exchange created");
         }
 
         @Override
         public void run() {
             Log.d(LOG_TAG, "Exchange started");
-            try {
-                pi.send(MainActivity.STATUS_START);
-            } catch (PendingIntent.CanceledException e) {
-                Log.d(LOG_TAG, "Exchange send start status failure");
-            }
 
             if(timer != null){
                 timer.cancel();
             }
 
-            Timer myTimer = new Timer(); // Создаем таймер
+            Timer myTimer = new Timer();
 
-            myTimer.schedule(new TimerTask() { // Определяем задачу
+            myTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     intent = new Intent();
                     getJson();
                 }
-            }, 0L, 60L * 1000); // интервал - 60000 миллисекунд, 0 миллисекунд до первого запуска.
+            }, 0L, 60L * 1000);
 
-            /*intent=new Intent();
-            getJson();*/
         }
 
         private void getJson()
@@ -104,11 +100,25 @@ public class GpsJsonService extends Service {
                 public void onResponse(Call<String> call, retrofit2.Response<String> response) {
                     Log.d(LOG_TAG, "Exchange getJson success");
                     intent.putExtra(MainActivity.PARAM_RESULT,response.body().toString());
-                    try {
-                        pi.send(GpsJsonService.this, MainActivity.STATUS_FINISH, intent);
-                    } catch (PendingIntent.CanceledException e) {
-                        Log.d(LOG_TAG, "PendingIntent CanceledException:"+e.getMessage());
-                    }
+
+                    Gson gson=new GsonBuilder().create();
+                    JsonBind jsb=gson.fromJson(response.body().toString(),JsonBind.class);
+                    NotificationCompat.Builder mBuilder =
+                            new NotificationCompat.Builder(getApplicationContext())
+                                    .setSmallIcon(ic_launcher)
+                                    .setTicker("New offers")//short text
+                                    .setContentTitle("Offer app")//full text title
+                                    .setContentText(jsb.getText());//full text notification
+                    Intent activityIntent = new Intent(getApplicationContext(), MainActivity.class);
+                    activityIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    activityIntent.putExtra(MainActivity.PARAM_RESULT,response.body().toString());
+                    PendingIntent activityPi = PendingIntent.getActivity(getApplicationContext(), 0, activityIntent, 0);
+                    mBuilder.addAction(ic_launcher,"View offers",activityPi);
+
+                    int mNotificationId = 001;
+                    NotificationManager mNotifyMgr =
+                            (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                    mNotifyMgr.notify(mNotificationId, mBuilder.build());
                 }
 
                 @Override
